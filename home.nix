@@ -64,6 +64,7 @@ in
     (st.overrideAttrs {src = ./program_sources/st; buildInputs = st.buildInputs ++ [xorg.libXcursor];})
     (dmenu.overrideAttrs {src = ./program_sources/dmenu;})
     # (callPackage ./program_sources/dwm {})
+    i3status
 
     (callPackage ./program_sources/fortunate {})
     (runCommand "dwmScripts" {} ''
@@ -361,13 +362,17 @@ in
   # programs.bash.enable = (!usingNixOS);
 
   programs.lsd.enable = (!usingNixOS);
-  xdg.configFile."lsd/config.yml".source = lib.mkIf (!usingNixOS) ./dotfiles-managed/lsd/config.yml;
-  xdg.configFile."lsd/colors.yml".source = lib.mkIf (!usingNixOS) ./dotfiles-managed/lsd/colors.yml;
 
   programs.bat.enable = (!usingNixOS);
 
-  xdg.configFile."fortunate".source = ./dotfiles-managed/fortunate;
-  xdg.configFile."emoji".source = ./misc-data/emoji;
+  xdg.configFile = {
+    "lsd/config.yml".source = lib.mkIf (!usingNixOS) ./dotfiles-managed/lsd/config.yml;
+    "lsd/colors.yml".source = lib.mkIf (!usingNixOS) ./dotfiles-managed/lsd/colors.yml;
+    "fortunate".source = ./dotfiles-managed/fortunate;
+    "emoji".source = ./misc-data/emoji;
+    "i3status".source = ./dotfiles-managed/i3status;
+  };
+
 
   systemd.user = {
     timers = {
