@@ -5,3 +5,4 @@
 /program_sorces/dmenu/*.orig
 /program_sorces/dmenu/*.rej
 /program_sorces/dmenu/*.o
+/meta_config.nix
