@@ -358,6 +358,8 @@ in
 
   programs.bat.enable = (!usingNixOS);
 
+  xdg.configFile."fortunate".source = ./dotfiles-managed/fortunate;
+
   systemd.user = {
     timers = {
       autotrash = {
