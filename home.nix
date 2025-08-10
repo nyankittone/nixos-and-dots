@@ -2,13 +2,13 @@
 
 { config, pkgs, pkgsUnstable, usingNixOS, inputs, ... }:
 let
-  username = import ./username.nix;
+  meta = import ./meta_config.nix;
 
   lib = pkgs.lib;
 in
 {
-  home.username = username;
-  home.homeDirectory = "/home/${username}";
+  home.username = meta.username;
+  home.homeDirectory = "/home/${meta.username}";
   home.stateVersion = "24.11"; # Please read the comment before changing.
 
   nixpkgs.config.allowUnfree = true;

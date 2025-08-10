@@ -11,7 +11,7 @@
     };
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
-      inputs.nixpkgs.follows = "stable"; # May need to remove this line some time in the future...
+      inputs.nixpkgs.follows = "stable";
     };
   };
 
@@ -19,9 +19,10 @@
     let
       pkgsUnstable = unstable.legacyPackages.x86_64-linux;
       usingNixOS = false;
+      meta = import ./meta_config.nix;
     in
     {
-      homeConfigurations."${import ./username.nix}" = home-manager.lib.homeManagerConfiguration {
+      homeConfigurations."${meta.username}" = home-manager.lib.homeManagerConfiguration {
         pkgs = stable.legacyPackages.x86_64-linux;
 
         # Specify your home configuration modules here, for example, the path to your home.nix.

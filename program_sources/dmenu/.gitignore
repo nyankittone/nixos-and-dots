@@ -1,0 +1,8 @@
+/config.h
+*.o
+/dmenu
+/stest
+/*.diff
+/*.rej
+/*.orig
+
