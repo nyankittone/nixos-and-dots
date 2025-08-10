@@ -1,4 +1,6 @@
 # TODO list for my config
+* Add bash config
+* Add i3status config
 * Add git configuration to the HM config
 * Add initial NixOS support
 * Fix cursor themes for dwm
