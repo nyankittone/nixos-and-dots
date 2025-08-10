@@ -40,8 +40,8 @@ in
     nixgl.auto.nixGLDefault
     (lib.mkIf (!usingNixOS) neovim) # Neovim is installed system-wide if we're on NixOS
     vifm-full
-    trash-cli # These trash-related tools are causing issues when invoking my rm alias as sudo.
-    rmtrash   # Should I just have these things installed system-wide to avoid this problem? Maybe.
+    trash-cli
+    rmtrash
     autotrash
     bluetuith
     whois
