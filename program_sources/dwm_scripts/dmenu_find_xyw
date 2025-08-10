@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+# $1 is the mouse X
+# $2 is the mouse Y
+get_target_monitor() {
+    monitor_params=$(xrandr --query | awk '/\sconnected/{print $3 == "primary" ? $4 : $3}')
+
+    returned=$(printf '%s\n' "$monitor_params" | awk 'BEGIN{FS = "[x+]"} {if('"$1"' >= $3 && '"$1"' < $3 + $1 && '"$2"' >= $4 && '"$2"' < $4 + $2) {print $3" "$4" "$1" "$2; exit}}')
+
+    # WARNING: this if block is untested. It's supposed to default to returning the parameters of
+    # the primary display if the mouse cursor is not in any range.
+    if [ -z "$returned" ]; then
+        returned=$(xrandr --query | awk 'BEGIN{FS = "[ x+]"} /primary/{print $6" "$7" "$4" "$5}')
+    fi
+
+    echo "$returned"
+
+    unset returned
+    unset monitor_params
+}
+
+# $1 is monitor_params
+get_bar_params() {
+    x1=$(echo "$1" | awk '{print $1}')
+    y1=$(echo "$1" | awk '{print $2}')
+    x2=$(echo "$1" | awk '{print $3}')
+    y2=$(echo "$1" | awk '{print $4}')
+
+    xdotool search --class dwm | while read -r id; do
+        bar_params=$(xdotool getwindowgeometry "$id")
+        eval "$(echo "$bar_params" | awk 'NR == 2 {print $2}' | tr ',' '\n' | paste -d = <(echo 'bar_x
+bar_y') -)"
+
+        if [ "$bar_x" -ge "$x1" ] && [ "$bar_x" -lt $((x1 + x2)) ] && [ "$bar_y" -ge "$y1" ] && [ "$bar_y" -lt $((y1 + y2)) ]; then
+            echo "$bar_params" | sed '1,2d;3s/^\s*Geometry:\s*//;3s/x[0-9]*$//'
+        fi
+    done
+
+    unset x1
+    unset y1
+    unset x2
+    unset y2
+    unset bar_x
+    unset bar_y
+    unset bar_params
+}
+
+# get mouse cursor position, setting $mouse_x and $mouse_y accordingly
+eval "$(xdotool getmouselocation | tr ' ' '\n' | sed 's/^\(.\):/mouse_\1=/;2q')"
+
+# get monitor to target
+monitor_params=$(get_target_monitor "$mouse_x" "$mouse_y")
+
+# grab all window IDs for the dwm bars
+bar_width=$(get_bar_params "$monitor_params")
+if [ -z "$bar_width" ]; then
+    bar_width=$(echo "$monitor_params" | cut -d' ' -f3)
+else
+    bar_width=$((bar_width - 400))
+fi
+
+printf '%s' "$bar_width"
+

@@ -1,0 +1,102 @@
+#!/bin/sh
+
+# TODO: Add funny watermark to screenshots of a whole monitor
+
+notify_fail() (
+    error_message=$(printf '%s\n' "$@" | tr '\n' ' ')
+    notify-send -a "$app_name" -u critical 'Screenshot failed!' "$error_message" 2>/dev/null || true
+)
+
+die() {
+    exit_code="$1"
+    shift
+    error_message=$(printf '%s\n' "$@" | tr '\n' ' ')
+
+    notify_fail "$error_message"
+    printf '\33[1;91mfatal: \33[m%s\33[m\n' "$error_message"
+    exit "$exit_code"
+}
+
+normalize_display() {
+    if printf '%s\n' "$1" | grep -E '^.+:' > /dev/null; then
+        return 1
+    fi
+
+    case "$1" in
+        :*);;
+        *) return 2;;
+    esac
+
+    echo "$1" | awk -F . '{first = substr($1, 2, length($1)); print $2 == "" ? first".0" : first"."$2}' |
+        grep -E '^[0-9]+\.[0-9]+$'
+}
+
+fifo_dir=$XDG_RUNTIME_DIR/scrot-meow
+fifo_file="$fifo_dir"/"$(normalize_display "$DISPLAY")"
+app_name='scrot-meow'
+
+# Stopping if not enough parameters are provided
+if [ "$#" -lt 2 ] && [ "$1" != help ]; then
+    die 1 not enough parameters provided! '(got '"$#"', at least 2 required)'
+fi
+
+# Checking first parameter to see if it is either "file", "clipboard", or "help"
+case "$1" in
+    help)
+    ;;
+    file|clipboard);;
+    *) die 2 first parameter is invalid! '(got "'"$1"'", should be either "file", "clipboard", or "help")';;
+esac
+
+if [ "$2" != all ] && [ "$2" != select ] && ! (printf '%s\n' "$2" | grep -E '^[0-9]+$' >/dev/null); then 
+    die 3 second parameter is invalid! '(got "'"$2"'", should be either "all" or an integer)'
+fi
+
+cmd='scrot -p'
+case "$2" in
+    all);;
+    select)
+        cmd="$cmd -s"
+    ;;
+    *)
+        cmd="$cmd -M $2"
+    ;;
+esac
+
+case "$1" in
+    file)
+        filename=$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H%M%S).png
+        cmd="$cmd -F \"${filename}\""
+    ;;
+    clipboard)
+        cmd="$cmd -F - > $fifo_file"
+    ;;
+esac
+
+if [ "$1" = clipboard ]; then
+    mkdir -p "$fifo_dir"
+    mkfifo "$fifo_file"
+
+    xclip -in -sel c -target image/png < "$fifo_file" &
+    xclip_pid=$!
+fi
+
+cmd_output=$(eval "$cmd" 2>&1)
+exit_code=$?
+echo "$exit_code"
+
+if [ "$exit_code" -gt 0 ]; then
+    [ "$1" = clipboard ] && kill "$xclip_pid"
+    die 4 scrot invocation failed! '(exit '"$exit_code"')' '<br>' "$cmd_output"
+fi
+
+if [ "$1" = clipboard ]; then
+    notify-send -a "$app_name" 'Screenshot taken successfully!' 'Image saved to clipboard'
+else
+    if [ -n "$(notify-send -a "$app_name" 'Screenshot taken successfully!' "Image saved as $filename" -A 'Open in image editor')" ]; then
+        nixGL gimp "$filename" # TODO: Set the default image viewer, so you can simply call xdg-open here.
+    fi
+fi
+
+# TODO: Find an image editor program that is able to, when told to from the command line, work on
+# a file from the clipboard. That would be perfect for my needs.

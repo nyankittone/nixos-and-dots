@@ -1,0 +1,171 @@
+#!/bin/sh
+shell_pid=$$
+
+die() {
+    exit_code=$1
+    shift
+
+    printf "\33[1;91mfatal:\33[m %s\n" "$(printf '%s\n' "$@" | tr '\n' ' ')" >&2
+    cleanup
+    kill "$shell_pid"
+}
+
+# $1 is the string for the X11 DISPLAY environment variable.
+# The line printed out is a "normalized" version of that, i.e. turning ":0" into "0.0"
+# if the server is remote, return with code 1 and print nothing.
+normalize_display() {
+    if printf '%s\n' "$1" | grep -E '^.+:' > /dev/null; then
+        return 1
+    fi
+
+    case "$1" in
+        :*);;
+        *) return 2;;
+    esac
+
+    echo "$1" | awk -F . '{first = substr($1, 2, length($1)); print $2 == "" ? first".0" : first"."$2}' |
+        grep -E '^[0-9]+\.[0-9]+$'
+}
+
+get_monitor() {
+    monitors=$(xrandr --query | grep '\sconnected' | cut -d' ' -f1)
+    if [ "$(printf '%s\n' "$monitors" | wc -l)" -eq 1 ]; then
+        monitor=$monitors
+    else
+        monitor=$(printf '%s\n' "$monitors" | sh -c "$dmenu_command")
+        if [ "$?" -gt 0 ]; then 
+            die 6 no monitor was selected by dmenu!
+        fi
+    fi
+
+    unset monitors
+
+    xrandr --query | awk '/^'"$monitor"'/{print $3 == "primary" ? $4 : $3}'
+    unset monitor
+}
+
+cleanup() {
+    rm "$file_name" 2>/dev/null || true
+}
+
+stop_running_recording() {
+    # Check if the PID for this exists. If no, quit without doing anything.
+    target_pid=$(printf '%s\n' "$1" | awk '{print $2}')
+    if [ -z "$target_pid" ]; then
+        die 6 a recording session is about to start!
+    fi
+
+    # Validate that the process we're killing is actually an ffmpeg process.
+    if [ -n "$(ps aux | awk '{if(NR > 1 && $1 == "'"$USER"'" && $2 == "'"$target_pid"'" && $11 == "ffmpeg") print}')" ]; then
+        kill "$target_pid"
+    else
+        die 7 target PID is not an ffmpeg process!
+    fi
+
+    unset target_pid
+}
+
+# Create a file in XDG_RUNTIME_DIR describing the PID and display for the recording session.
+# This will be used to identify what program to SIGTERM when spinning down the recording session.
+if ! [ -d "$XDG_RUNTIME_DIR" ]; then
+    die 1 cannot record: '$XDG_RUNTIME_DIR' is invalid
+fi
+
+if [ -z "$DISPLAY" ]; then
+    die 2 cannot record: '$DISPLAY' is unset\; are you not running an X session\?
+fi
+
+# "Normalize" the X11 DISPLAY name - and also stop running if the X server is not running locally.
+if ! normal_display=$(normalize_display "$DISPLAY"); then
+    die 3 cannot record: invalid '$DISPLAY,' or X server is running remotely
+fi
+
+# Creating the record-thing directory if it doesn't already exist
+dir_name="$XDG_RUNTIME_DIR"/record-thing
+mkdir -pm 700 "$dir_name"
+
+target_pid=$(find "$dir_name" -type f | xargs -I {} basename {} | awk '{if($1 == "'"$normal_display"'") print}')
+if [ -n "$target_pid" ]; then
+    stop_running_recording "$target_pid"
+    unset target_pid
+    exit 0
+fi
+
+# Create initial lock file
+file_name="$dir_name"/"$normal_display"
+touch "$file_name"
+chmod 200 "$file_name"
+
+# parse command line parameters. I need ones for:
+## specifying audio device
+## specifying dmenu command to use
+## idk what else lmao
+
+# $1 is the flag paramenter
+# $2 is its parameter
+set_or_die() {
+    [ -z "$2" ] && die 5 flag '"'"$1"'"' requires one paramenter
+    printf '%s\n' "$2"
+}
+
+get_audio_source_from_name() {
+    set_or_die "$1" "$2" > /dev/null
+    tmp_pactl_output=$(pactl list short sources)
+    full_audio_source_name=$(printf '%s\n' "$tmp_pactl_output" | awk '{print $2}' | grep -i "$2" | head -1)
+
+    printf '%s\n' "$tmp_pactl_output" | awk '{if($2 == "'"$full_audio_source_name"'") {print $1; quit}}'
+
+    unset tmp_pactl_output
+    unset full_audio_source_name
+}
+
+while [ -n "${1+the}" ]; do
+    case "$1" in
+        --dmenu)
+            dmenu_command=$(set_or_die "$1" "$2");;
+        --audio-source-name) audio_source=$(get_audio_source_from_name "$1" "$2");;
+        --output-dir) output_directory=$(set_or_die "$1" "$2");;
+        --recording-sound) recording_sound=$(set_or_die "$1" "$2");;
+    esac
+
+    shift 2
+done
+
+if [ -z "${dmenu_command+bruh}" ]; then
+    dmenu_command='dmenu -b -p "Select monitor:"'
+fi
+
+if [ -z "${audio_source+bruh}" ]; then
+    audio_source=default
+fi
+
+if [ -z "${output_directory+meow}" ]; then
+    die 8 no output directory specified! '(define it with the --output-dir flag)'
+fi
+
+# get section of the X11 screen to use
+monitor_params=$(get_monitor)
+
+[ -n "${recording_sound+fart}" ] && aplay -t wav "$recording_sound"
+
+mkdir -p "$output_directory" || die 9 cannot create directory \""$output_directory"\"!
+output_file_name="$output_directory"/"$(date +%Y-%m-%d_%H-%M-%S)".mkv
+
+ffmpeg -video_size "$(echo "$monitor_params" | awk -F + '{print $1}')" -framerate 30 \
+    -f x11grab -i "$DISPLAY"+"$(echo "$monitor_params" | awk -F + '{print $2","$3}')" \
+    -f pulse -ac 2 -i "$audio_source" -crf 30 "$output_file_name" &
+
+ffmpeg_pid=$!
+trap "kill -INT $ffmpeg_pid" INT
+
+new_file_name="$file_name $ffmpeg_pid"
+mv "$file_name" "$new_file_name"
+file_name=$new_file_name
+unset new_file_name
+
+wait
+trap - INT
+
+cleanup
+notify-send -a 'record-thing' 'Recording finished' 'Saved file to '"$output_file_name"
+

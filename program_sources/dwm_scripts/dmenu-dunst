@@ -1,0 +1,4 @@
+#!/bin/sh
+dmenu -p '💬 Notification:' -b -fn 'ZedMono Nerd Font:size=26' -z 3344 \
+    -sb '#a6da95' -shb '#eed49f' "$@"
+

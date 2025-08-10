@@ -1,0 +1,61 @@
+#!/bin/sh
+
+die() {
+    exit_code=$1
+    shift
+    printf '\33[1;91mfatal:\33[m %s\n' "$(printf '%s\n' "$@" | tr '\n' ' ')"
+    exit "$exit_code"
+}
+
+load_emojis() {
+    echo Loading emojis...
+    if emoji_data=$(cat "$config_path"/emoji); then
+        echo Done.
+    else
+        die 1 Failed to load emojis!
+    fi
+    
+}
+
+random_line() {
+    index_to_use=$((`(dd if=/dev/urandom bs=1 count=4 | od -t u4) 2>/dev/null | sed 's/^[0-9]*\s*//'`
+        % $(printf '%s\n' "$1" | wc -l) + 1))
+
+    printf '%s' "$(printf '%s\n' "$1" | sed "${index_to_use}p;d")"
+
+    unset index_to_use
+}
+
+if [ -n "$XDG_CONFIG_HOME" ]; then
+    config_path=$XDG_CONFIG_HOME
+else
+    config_path=$HOME/.config
+fi
+
+prompt_emojis='🤣
+😈
+💀
+😘
+🍆
+🤓
+😼
+🤪
+🥺
+😏
+💕
+🤔
+👩
+😹
+🍑
+🌹
+💯'
+
+load_emojis
+
+echo "$emoji_data" |
+    dmenu -b -fn 'ZedMono Nerd Font:size=26' -sb '#7dc4e4' -z "$(dmenu_find_xyw)" \
+        -p "$(random_line "$prompt_emojis") Select Emoji:" |
+    awk '{print $1}' |
+    tr -d '\n' |
+    xclip -selection clipboard -in
+

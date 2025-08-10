@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+# TODO: Fix everything wrong about this script. Namely, make all the functions in the dmenu menu
+# actually work... guhhh
+
+# TODO: Make it so that this script can get the border width from dwm somehow. Probably through
+# the ipc patch. For now, jut have it be passed as a flag.
+if [ -n "${1+bruh}" ]; then
+    border_width=$1
+else
+    border_width=4
+fi
+
+# TODO: check beforehand if dwwm is running!
+dwm 2> /tmp/dwm.log &
+dwm_pid=$!
+
+find_new_dwm() {
+    notify-send -u low -a 'dwm-crash-recovery' 'Waiting for dwm to be re-launched' \
+        'The next instance will get watched'
+
+    local dwm_connected
+    local dwm_pid_list
+    dwm_connected=no
+    while true; do
+        # Check to see if dwm has reconnected
+        local wm_name
+        wm_name=$(wmctrl -m | grep ^Name | awk '{print $2}')
+        if [ $? -eq 0 ] && [ "$wm_name" = dwm ]; then
+            dwm_connected=yes
+        fi
+
+        # Check all PIDs for dwm for current user
+        # If we get a reconnection and one new PID, set that PID as the one to be tracked and return
+        # If we get multiple new PIDs, ask the user for the correct one to track
+        local new_dwm_pid_list
+        new_dwm_pid_list=$(pgrep -u $(id -u) ^dwm$)
+        if [ "$dwm_connected" = yes ]; then
+            local new_pids
+
+            while read -r line; do
+                if ! grep -x "$line" <<< "$dwm_pid_list"; then
+                    new_pids="$line"$'\n'"$new_pids"
+                fi
+            done <<< "$new_dwm_pid_list"
+
+            notify-send -a dwm-crash-recovery 'new PIDS:' "$new_pids"
+
+            if [ -z "$new_pids" ]; then
+                notify-send -a 'dwm-crash-recovery' chungus
+                continue
+            elif [ "$(wc -l <<< "$new_pids")" -eq 1 ]; then
+                dwm_pid=$(tr -d '\n' <<< "$new_pids")
+                notify_send -a 'dwm-crash-recovery' 'Watching PID '"$dwm_pid" 'dwm is running again! :3'
+                break
+            else
+                notify-send -a 'dwm-crash-recovery' TOO\ MANY\ PIDS\ GRAAAAAH
+                break
+            fi
+        fi
+
+        dwm_pid_list=$new_dwm_pid_list
+        sleep 1
+    done
+}
+
+try_restore() {
+    action=$(printf 'Restart dwm\nRoll back dwm to old commit\nOpen a terminal\nQuit X11\nDo nothing (might leave the X session unusable)\n' |
+        dmenu -c -bw "$border_width" -fn 'ZedMono Nerd Font:size=26' -noi -sb '#ed8796' \
+        -nb '#220510' -sf '#220510' -l 5 -p "dwm just crashed! (exit ${exit_code}) What should I do?")
+    case "$action" in
+        'Restart dwm')
+            dwm 2> /tmp/dwm.log &
+            dwm_pid=$!
+        ;;
+        'Open a terminal')
+            st &
+            find_new_dwm
+            # TODO: add code for seeing the new dwm instance
+        ;;
+        'Quit X11')
+            exit
+        ;;
+        'Do nothing (might leave the X session unusable)')
+            find_new_dwm
+        ;;
+    esac
+}
+
+while true; do
+    wait -n "$dwm_pid"
+    exit_code=$?
+    case $exit_code in
+        2)
+            dwm 2> /tmp/dwm.log &
+            dwm_pid=$!
+        ;;
+        0) break;;
+        *) try_restore;;
+    esac
+done

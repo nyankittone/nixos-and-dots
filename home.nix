@@ -57,6 +57,11 @@ in
     (dmenu.overrideAttrs {src = ./program_sources/dmenu;})
 
     (callPackage ./program_sources/fortunate {})
+    (runCommand "dwmScripts" {} ''
+      set -eu
+      mkdir -p $out/bin
+      install ${program_sources/dwm_scripts}/* $out/bin
+    '')
   ] ++ (let n = nerd-fonts; in [
     minecraftia
     noto-fonts
