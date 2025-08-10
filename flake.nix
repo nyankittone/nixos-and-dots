@@ -19,10 +19,10 @@
     let
       pkgsUnstable = unstable.legacyPackages.x86_64-linux;
       usingNixOS = false;
-      meta = import ./meta_config.nix;
+      static = import ./static_config.nix;
     in
     {
-      homeConfigurations."${meta.username}" = home-manager.lib.homeManagerConfiguration {
+      homeConfigurations."${static.username}" = home-manager.lib.homeManagerConfiguration {
         pkgs = stable.legacyPackages.x86_64-linux;
 
         # Specify your home configuration modules here, for example, the path to your home.nix.

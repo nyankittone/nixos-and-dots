@@ -2,7 +2,7 @@
 
 { config, pkgs, pkgsUnstable, usingNixOS, inputs, ... }:
 let
-  meta = import ./meta_config.nix;
+  static = import ./static_config.nix;
   lib = pkgs.lib;
 
   cursorName = "miku-cursor-linux";
@@ -15,8 +15,8 @@ let
   '';
 in
 {
-  home.username = meta.username;
-  home.homeDirectory = "/home/${meta.username}";
+  home.username = static.username;
+  home.homeDirectory = "/home/${static.username}";
   home.stateVersion = "24.11"; # Please read the comment before changing.
 
   nixpkgs.config.allowUnfree = true;
