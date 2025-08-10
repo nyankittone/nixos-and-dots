@@ -364,6 +364,7 @@ in
   programs.bat.enable = (!usingNixOS);
 
   xdg.configFile."fortunate".source = ./dotfiles-managed/fortunate;
+  xdg.configFile."emoji".source = ./misc-data/emoji;
 
   systemd.user = {
     timers = {
