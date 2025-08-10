@@ -1,0 +1,18 @@
+classic: false
+blocks:
+  - permission
+  - user
+  - group
+  - links
+  - size
+  - date
+  - name
+
+color:
+  theme: custom
+
+size: short
+total-size: false
+
+# TODO: Make this only be the ASCII characters if running from the TTY
+symlink-arrow: =>

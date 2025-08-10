@@ -1,0 +1,4 @@
+--- Goals of this st fork ---
+- Super-basic image support
+- Have colors not be bright on bold
+- 

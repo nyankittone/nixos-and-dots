@@ -1,0 +1,7 @@
+/username.nix
+/program_sorces/st/*.orig
+/program_sorces/st/*.rej
+/program_sorces/st/*.o
+/program_sorces/dmenu/*.orig
+/program_sorces/dmenu/*.rej
+/program_sorces/dmenu/*.o
