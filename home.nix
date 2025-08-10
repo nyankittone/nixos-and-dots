@@ -55,6 +55,8 @@ in
 
     (st.overrideAttrs {src = ./program_sources/st; buildInputs = st.buildInputs ++ [xorg.libXcursor];})
     (dmenu.overrideAttrs {src = ./program_sources/dmenu;})
+
+    (callPackage ./program_sources/fortunate {})
   ] ++ (let n = nerd-fonts; in [
     minecraftia
     noto-fonts

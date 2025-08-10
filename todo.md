@@ -1,6 +1,6 @@
 # TODO list for my config
-* Add tmux configuration
-* Make it a git repo
+* Add fortunate to the repo
 * Add git configuration to the HM config
+* Add initial NixOS support
 * Modernize fastfetch config
 
