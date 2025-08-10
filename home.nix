@@ -362,7 +362,6 @@ in
   # programs.bash.enable = (!usingNixOS);
 
   programs.lsd.enable = (!usingNixOS);
-
   programs.bat.enable = (!usingNixOS);
 
   xdg.configFile = {

@@ -1,5 +1,5 @@
 # TODO list for my config
-* Add i3status config
+* Upload to GitHub
 * Add git configuration to the HM config
 * Add initial NixOS support
 * Fix cursor themes for dwm

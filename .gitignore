@@ -4,4 +4,7 @@
 /program_sorces/dmenu/*.orig
 /program_sorces/dmenu/*.rej
 /program_sorces/dmenu/*.o
+/program_sorces/dwm/*.orig
+/program_sorces/dwm/*.rej
+/program_sorces/dwm/*.o
 /meta_config.nix
