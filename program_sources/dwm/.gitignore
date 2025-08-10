@@ -1,0 +1,8 @@
+/*.diff
+*.o
+*.rej
+*.orig
+/dwm
+/result
+/config.h
+

@@ -3,8 +3,16 @@
 { config, pkgs, pkgsUnstable, usingNixOS, inputs, ... }:
 let
   meta = import ./meta_config.nix;
-
   lib = pkgs.lib;
+
+  cursorName = "miku-cursor-linux";
+  cursorPackage = pkgs.runCommand "ligmaBalls" {} ''
+    mkdir -p $out/share/icons
+    ln -s ${pkgs.fetchzip {
+      url = "https://github.com/supermariofps/hatsune-miku-windows-linux-cursors/releases/download/1.2.6/miku-cursor-linux.tar.xz";
+      hash = "sha256-qxWhzTDzjMxK7NWzpMV9EMuF5rg9gnO8AZlc1J8CRjY=";
+    }} $out/share/icons/${cursorName}
+  '';
 in
 {
   home.username = meta.username;
@@ -55,6 +63,7 @@ in
 
     (st.overrideAttrs {src = ./program_sources/st; buildInputs = st.buildInputs ++ [xorg.libXcursor];})
     (dmenu.overrideAttrs {src = ./program_sources/dmenu;})
+    # (callPackage ./program_sources/dwm {})
 
     (callPackage ./program_sources/fortunate {})
     (runCommand "dwmScripts" {} ''
@@ -90,17 +99,8 @@ in
     openrct2
   ]);
 
-  home.pointerCursor = 
-  let
-    cursorName = "miku-cursor-linux";
-  in {
-    package = pkgs.runCommand "ligmaBalls" {} ''
-      mkdir -p $out/share/icons
-      ln -s ${pkgs.fetchzip {
-        url = "https://github.com/supermariofps/hatsune-miku-windows-linux-cursors/releases/download/1.2.6/miku-cursor-linux.tar.xz";
-        hash = "sha256-qxWhzTDzjMxK7NWzpMV9EMuF5rg9gnO8AZlc1J8CRjY=";
-      }} $out/share/icons/${cursorName}
-    '';
+  home.pointerCursor = {
+    package = cursorPackage;
     gtk.enable = true;
     x11.enable = true;
     name = cursorName;
@@ -118,6 +118,9 @@ in
       name = "Tela-pink";
     };
   };
+
+  # xsession.enable = true;
+  # xsession.windowManager.command = "dwm-manager";
 
   fonts.fontconfig.enable = true;
 
