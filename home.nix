@@ -63,7 +63,7 @@ in
 
     (st.overrideAttrs {src = ./program_sources/st; buildInputs = st.buildInputs ++ [xorg.libXcursor];})
     (dmenu.overrideAttrs {src = ./program_sources/dmenu;})
-    # (callPackage ./program_sources/dwm {})
+    (callPackage ./program_sources/dwm {})
     i3status
 
     (callPackage ./program_sources/fortunate {})
